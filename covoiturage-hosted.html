@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Covoiturage Teambuilding — Klint</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --bg:#F3F6FB;
+    --surface:#FFFFFF;
+    --surface-2:#EAF0F9;
+    --border:#DCE4F0;
+    --ink:#101B33;
+    --ink-2:#5B6B85;
+    --navy:#14213D;
+    --accent:#FF6B4A;
+    --accent-ink:#FFFFFF;
+    --teal:#1FA398;
+    --seat-empty:#FFFFFF;
+    --seat-taken:#1FA398;
+    --danger:#C1443A;
+    --shadow:rgba(16,27,51,0.10);
+    --radius-lg:20px;
+    --radius-md:12px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0B1220; --surface:#121B2E; --surface-2:#182338; --border:#293451;
+      --ink:#EAF0FB; --ink-2:#93A2C0; --navy:#9FB2EC; --accent:#FF8A67; --accent-ink:#161010;
+      --teal:#4FD6C8; --seat-empty:#121B2E; --seat-taken:#4FD6C8; --danger:#F2948B; --shadow:rgba(0,0,0,0.45);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0B1220; --surface:#121B2E; --surface-2:#182338; --border:#293451;
+    --ink:#EAF0FB; --ink-2:#93A2C0; --navy:#9FB2EC; --accent:#FF8A67; --accent-ink:#161010;
+    --teal:#4FD6C8; --seat-empty:#121B2E; --seat-taken:#4FD6C8; --danger:#F2948B; --shadow:rgba(0,0,0,0.45);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Work Sans", ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{ font-family:"Fraunces", Georgia, serif; font-weight:600; letter-spacing:-0.01em; margin:0; }
+  .mono{ font-family:"IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  button{ font-family:inherit; } input, select{ font-family:inherit; }
+  .page{ max-width:1180px; margin:0 auto; padding:0 20px 64px; }
+  .hero{ padding:48px 0 30px; border-bottom:1px solid var(--border); margin-bottom:30px; }
+  .wordmark{
+    display:inline-flex; align-items:baseline; gap:8px; font-family:"IBM Plex Mono", monospace;
+    text-transform:uppercase; letter-spacing:0.14em; font-size:11.5px; color:var(--ink-2); margin:0 0 12px;
+  }
+  .wordmark b{ color:var(--navy); font-weight:600; letter-spacing:0.16em; }
+  .wordmark .dot{ color:var(--accent); }
+  .hero h1{ font-size:clamp(32px, 5vw, 48px); text-wrap:balance; }
+  .hero .lede{ max-width:60ch; color:var(--ink-2); font-size:15.5px; line-height:1.55; margin:12px 0 24px; }
+  .trip-summary{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:26px; }
+  @media (max-width:640px){ .trip-summary{ grid-template-columns:1fr; } }
+  .trip-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:16px 18px; display:flex; gap:12px; align-items:flex-start; }
+  .trip-icon{ width:34px; height:34px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:16px; }
+  .trip-card.aller .trip-icon{ background:color-mix(in srgb, var(--accent) 16%, transparent); color:var(--accent); }
+  .trip-card.retour .trip-icon{ background:color-mix(in srgb, var(--teal) 16%, transparent); color:var(--teal); }
+  .trip-label{ font-size:11px; text-transform:uppercase; letter-spacing:0.08em; font-weight:600; color:var(--ink-2); margin-bottom:3px; }
+  .trip-route{ font-size:14.5px; font-weight:500; line-height:1.4; }
+  .trip-when{ font-size:13px; color:var(--ink-2); margin-top:2px; }
+  .whoami{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .whoami label{ font-size:13px; color:var(--ink-2); }
+  .whoami input{ background:var(--surface); border:1.5px solid var(--border); border-radius:10px; padding:9px 12px; font-size:14.5px; color:var(--ink); min-width:200px; }
+  .whoami input:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+  .whoami .saved-tag{ font-size:12.5px; color:var(--teal); display:none; align-items:center; gap:5px; }
+  .whoami .saved-tag.show{ display:inline-flex; }
+  .banner{ background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:12px 16px; font-size:13.5px; color:var(--ink-2); margin-bottom:24px; }
+  .banner.error{ border-color:var(--danger); color:var(--danger); }
+  .section-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px; }
+  .section-head h2{ font-size:21px; }
+  .section-head .count{ color:var(--ink-2); font-size:13.5px; }
+  .section-hint{ font-size:13px; color:var(--ink-2); margin:0 0 14px; }
+  .roster{ margin-bottom:34px; }
+  .roster-pool{ display:flex; flex-wrap:wrap; gap:8px; padding:16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); min-height:56px; }
+  .roster-pool.is-empty::before{ content:"Tout le monde a une voiture !"; color:var(--ink-2); font-size:13.5px; font-style:italic; }
+  .consultant-chip{
+    display:inline-flex; align-items:center; gap:6px; background:var(--surface-2); border:1.5px solid var(--border);
+    border-radius:100px; padding:7px 13px; font-size:13.5px; font-weight:500; cursor:grab; touch-action:none;
+    user-select:none; -webkit-user-select:none;
+  }
+  .consultant-chip.me{ border-color:var(--teal); color:var(--teal); }
+  .consultant-chip:active{ cursor:grabbing; }
+  .consultant-chip .grip{ opacity:0.4; font-size:11px; }
+  .roster-add{ display:flex; gap:8px; margin-top:10px; }
+  .roster-add input{ flex:1; background:var(--surface); border:1.5px solid var(--border); border-radius:10px; padding:9px 12px; font-size:13.5px; color:var(--ink); }
+  .roster-add input:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+  .roster-add button{ background:var(--surface-2); border:1.5px solid var(--border); border-radius:10px; padding:9px 16px; font-size:13px; font-weight:600; color:var(--ink); cursor:pointer; }
+  .roster-add button:hover{ border-color:var(--accent); color:var(--accent); }
+  .rides-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:18px; }
+  .card{
+    background:var(--surface); border:2px solid var(--border); border-radius:var(--radius-lg); padding:20px;
+    box-shadow:0 6px 18px var(--shadow); display:flex; flex-direction:column; gap:15px;
+    transition:border-color .12s ease, box-shadow .12s ease;
+  }
+  .card.drop-zone.drop-ok{ border-color:var(--teal); box-shadow:0 0 0 4px color-mix(in srgb, var(--teal) 18%, transparent); }
+  .card.drop-zone.drop-no{ border-color:var(--danger); box-shadow:0 0 0 4px color-mix(in srgb, var(--danger) 14%, transparent); }
+  .card-head{ display:flex; align-items:center; gap:12px; }
+  .avatar{
+    width:42px; height:42px; border-radius:50%; background:var(--surface-2); color:var(--navy);
+    display:flex; align-items:center; justify-content:center; font-family:"Fraunces", serif; font-weight:600;
+    font-size:16px; flex-shrink:0; border:1.5px solid var(--border);
+  }
+  .card-head .who{ min-width:0; flex:1; }
+  .card-head .driver{ font-family:"Fraunces", serif; font-weight:600; font-size:16.5px; }
+  .card-head .vehicle{ color:var(--ink-2); font-size:13px; }
+  .icon-btn{ background:none; border:none; color:var(--ink-2); cursor:pointer; padding:6px; border-radius:8px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .icon-btn:hover{ background:var(--surface-2); }
+  .icon-btn.danger:hover{ color:var(--danger); }
+  .icon-btn.accent:hover{ color:var(--accent); }
+  .head-actions{ display:flex; gap:2px; }
+  .schedule{ display:flex; gap:18px; flex-wrap:wrap; padding:12px 14px; background:var(--surface-2); border-radius:12px; font-size:13px; }
+  .schedule .item{ display:flex; flex-direction:column; gap:2px; }
+  .schedule .k{ font-size:10.5px; text-transform:uppercase; letter-spacing:0.07em; color:var(--ink-2); font-weight:600; }
+  .schedule .v{ font-weight:500; }
+  .schedule .v.pending{ color:var(--ink-2); font-style:italic; font-weight:400; }
+  .badge-early{ display:inline-block; margin-left:6px; font-size:10.5px; padding:2px 6px; border-radius:100px; background:color-mix(in srgb, var(--accent) 18%, transparent); color:var(--accent); font-weight:600; }
+  .note{ font-size:13px; color:var(--ink-2); line-height:1.4; display:flex; gap:7px; align-items:flex-start; }
+  .seats-block{ display:flex; flex-direction:column; gap:8px; }
+  .seats-line{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .seats-avail{ font-size:13px; font-weight:600; }
+  .seats-avail.full{ color:var(--ink-2); }
+  .seats-avail.open{ color:var(--teal); }
+  .seats-avail.pending{ color:var(--ink-2); font-style:italic; font-weight:400; }
+  .seat-dots{ display:flex; gap:6px; flex-wrap:wrap; }
+  .seat-dot{ width:15px; height:15px; border-radius:50%; border:2px solid var(--accent); background:var(--seat-empty); }
+  .seat-dot.taken{ background:var(--seat-taken); border-color:var(--seat-taken); }
+  .passengers{ display:flex; flex-wrap:wrap; gap:6px; min-height:0; }
+  .chip{ display:inline-flex; align-items:center; gap:5px; background:var(--surface-2); border:1px solid var(--border); border-radius:100px; padding:5px 10px; font-size:12.5px; }
+  .chip.me{ border-color:var(--teal); color:var(--teal); font-weight:600; }
+  .chip button{ background:none; border:none; cursor:pointer; color:inherit; font-size:13px; line-height:1; padding:0; margin-left:2px; }
+  .drop-hint{ font-size:12.5px; color:var(--ink-2); font-style:italic; }
+  .moto-card{ align-items:flex-start; }
+  .moto-note{ font-size:13.5px; color:var(--ink-2); line-height:1.5; }
+  .add-card{
+    border:1.5px dashed var(--border); border-radius:var(--radius-lg); display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:8px; padding:30px 20px; color:var(--ink-2); cursor:pointer;
+    background:transparent; font-family:inherit; min-height:180px;
+  }
+  .add-card:hover{ border-color:var(--accent); color:var(--accent); }
+  .add-card .plus{ font-size:26px; line-height:1; font-family:"Fraunces", serif; }
+  .add-card .label{ font-size:13.5px; font-weight:600; }
+  .drag-ghost{
+    position:fixed; top:0; left:0; z-index:100; transform:translate(-50%, -130%);
+    background:var(--accent); color:var(--accent-ink); border-radius:100px; padding:8px 14px; font-size:13.5px;
+    font-weight:600; pointer-events:none; box-shadow:0 8px 20px var(--shadow); white-space:nowrap;
+  }
+  .modal-overlay{ position:fixed; inset:0; background:rgba(16,27,51,0.5); display:flex; align-items:center; justify-content:center; padding:20px; z-index:50; overflow-y:auto; }
+  .modal-overlay[hidden]{ display:none; }
+  .modal{ background:var(--surface); border-radius:var(--radius-lg); padding:24px; max-width:380px; width:100%; box-shadow:0 20px 50px var(--shadow); border:1px solid var(--border); margin:auto; }
+  .modal h3{ font-size:18px; margin-bottom:6px; }
+  .modal p.desc{ font-size:13.5px; color:var(--ink-2); margin:0 0 16px; line-height:1.5; }
+  .modal .field{ margin-bottom:12px; }
+  .modal .field label{ display:block; font-size:12.5px; font-weight:600; color:var(--ink-2); margin-bottom:5px; }
+  .modal input{ width:100%; background:var(--surface-2); border:1.5px solid var(--border); border-radius:10px; padding:10px 12px; font-size:14.5px; color:var(--ink); }
+  .modal input:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+  .field-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .modal-actions{ display:flex; gap:10px; margin-top:16px; }
+  .modal-actions .btn{ flex:1; }
+  .modal-msg{ font-size:12.5px; color:var(--danger); margin-top:6px; min-height:0; }
+  .car-choice-list{ display:flex; flex-direction:column; gap:8px; }
+  .car-choice{ display:flex; align-items:center; justify-content:space-between; border:1.5px solid var(--border); border-radius:12px; padding:10px 14px; background:var(--surface-2); cursor:pointer; text-align:left; width:100%; font-size:13.5px; color:var(--ink); }
+  .car-choice:hover{ border-color:var(--teal); }
+  .car-choice:disabled{ opacity:0.45; cursor:not-allowed; }
+  .car-choice .cc-seats{ font-size:12px; color:var(--ink-2); }
+  .btn{ appearance:none; border:none; border-radius:11px; padding:12px 18px; font-size:14.5px; font-weight:600; cursor:pointer; transition:transform .1s ease, opacity .15s ease; }
+  .btn:active{ transform:scale(0.98); }
+  .btn-primary{ background:var(--accent); color:var(--accent-ink); width:100%; }
+  .btn-primary:disabled{ opacity:0.5; cursor:not-allowed; }
+  .btn-ghost{ background:transparent; color:var(--ink-2); border:1.5px solid var(--border); width:100%; }
+  .joined-note{ font-size:12.5px; color:var(--teal); text-align:center; }
+  .foot-hint{ margin-top:28px; font-size:13px; color:var(--ink-2); text-align:center; }
+  @media (prefers-reduced-motion: reduce){ .btn, .card{ transition:none; } }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <header class="hero">
+    <p class="wordmark"><b>KLINT</b><span class="dot">&middot;</span>Teambuilding</p>
+    <h1>Covoiturage</h1>
+    <p class="lede">Glissez un nom depuis la liste des consultants jusqu'à une voiture pour l'y positionner. Les places disponibles se mettent à jour pour tout le monde, en direct.</p>
+
+    <div class="trip-summary">
+      <div class="trip-card aller">
+        <div class="trip-icon">&#8594;</div>
+        <div>
+          <div class="trip-label">Aller &middot; 2 octobre</div>
+          <div class="trip-route">Klint, Levallois-Perret &rarr; Parc Aventure Land, Magny-en-Vexin</div>
+          <div class="trip-when">Départ 17h00 (16h00 pour la voiture de Charles)</div>
+        </div>
+      </div>
+      <div class="trip-card retour">
+        <div class="trip-icon">&#8592;</div>
+        <div>
+          <div class="trip-label">Retour &middot; 3 octobre</div>
+          <div class="trip-route">Parc Aventure Land, Magny-en-Vexin &rarr; Klint, Levallois-Perret</div>
+          <div class="trip-when">Heure selon les voitures, précisée par chaque conducteur·rice</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="whoami">
+      <label for="nameInput">Vous êtes</label>
+      <input id="nameInput" type="text" placeholder="Prénom Nom" maxlength="40">
+      <span class="saved-tag" id="savedTag">&#10003; enregistré sur cet appareil</span>
+    </div>
+  </header>
+
+  <div class="banner" id="dbBanner" hidden></div>
+
+  <main>
+    <section class="roster">
+      <div class="section-head">
+        <h2>Consultants à placer</h2>
+        <span class="count mono" id="rosterCount"></span>
+      </div>
+      <p class="section-hint">Glissez un nom sur une voiture pour le·la positionner (ou touchez le nom sur mobile pour choisir une voiture).</p>
+      <div class="roster-pool" id="rosterPool"></div>
+      <div class="roster-add">
+        <input id="rosterNewName" type="text" placeholder="Un consultant manque à la liste ? Ajoutez-le ici" maxlength="40">
+        <button type="button" id="rosterAddBtn">Ajouter</button>
+      </div>
+    </section>
+
+    <div class="section-head">
+      <h2>Les voitures</h2>
+      <span class="count mono" id="ridesCount"></span>
+    </div>
+    <div class="rides-grid" id="ridesGrid"></div>
+
+    <p class="foot-hint">Pour retirer quelqu'un d'une voiture, cliquez sur le × à côté de son nom : il·elle revient dans la liste des consultants à placer.</p>
+  </main>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" hidden>
+  <div class="modal" id="modalBody"></div>
+</div>
+
+<script type="module">
+  // ====================================================================
+  // CONFIGURATION FIREBASE — à remplacer par la config de VOTRE projet
+  // (Firebase Console > Paramètres du projet > Vos applications > Config)
+  // ====================================================================
+  const firebaseConfig = {
+    apiKey: "AIzaSyDFk732kOVwclpwWVMP1dIXJyzU4HOyO0c",
+    authDomain: "klint-covoiturage.firebaseapp.com",
+    projectId: "klint-covoiturage",
+    storageBucket: "klint-covoiturage.firebasestorage.app",
+    messagingSenderId: "634628670366",
+    appId: "1:634628670366:web:b694c2e9426c896d52cc8f"
+  };
+
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getFirestore, collection, doc, getDocs, setDoc, updateDoc, onSnapshot, writeBatch
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const app = initializeApp(firebaseConfig);
+  const dbFs = getFirestore(app);
+
+  const CARS_COL = "voitures";
+  const ROSTER_DOC = "roster/list";
+  const DEFAULT_DEPART_TIME = "17:00";
+
+  const SEED_CARS = [
+    { id:"charles", conducteur:"Charles BLIVET", vehicule:"VW Touran", placesTotal:6, heureDepart:"16:00", heureRetour:"15:00", note:"Départ avancé pour faire les courses", passagers:["Thibault BAUDARD","Guillaume BUISSON"], isMoto:false, createdAt:1 },
+    { id:"julien", conducteur:"Julien SHEN", vehicule:"", placesTotal:4, heureDepart:"17:00", heureRetour:"", note:"", passagers:[], isMoto:false, createdAt:2 },
+    { id:"niels", conducteur:"Niels VANECLOO", vehicule:"Citroën C3", placesTotal:4, heureDepart:"17:00", heureRetour:"", note:"", passagers:[], isMoto:false, createdAt:3 },
+    { id:"pierre", conducteur:"Pierre MESNIL", vehicule:"", placesTotal:4, heureDepart:"17:00", heureRetour:"", note:"", passagers:[], isMoto:false, createdAt:4 },
+    { id:"sandrine", conducteur:"Sandrine BEAUDELIN", vehicule:"Austin MINI", placesTotal:4, heureDepart:"17:00", heureRetour:"", note:"", passagers:["Dany PERENCHIO","Victoria GUEZ","Robin LERDA"], isMoto:false, createdAt:5 },
+    { id:"johan", conducteur:"Johan POGGI", vehicule:"Moto", placesTotal:0, heureDepart:"17:00", heureRetour:"", note:"Départ direct depuis son domicile", passagers:[], isMoto:true, createdAt:6 }
+  ];
+  const SEED_ROSTER = [
+    "Thibault BAUDARD","Guillaume BUISSON","Dany PERENCHIO","Victoria GUEZ","Robin LERDA",
+    "Chaima GUELLIM","Chanez ZERGANE","Ela SOYER","Guillaume JOLLY","Hippolyte MORAU",
+    "Jérôme ASSELIN","Leeroy MOOTHERY","Monirith CHAN-FAH","Nesrine JENDOUBI","Sara ZHAR",
+    "Sébastien RIPOLLES","Sophie DE LOITIERE","Walid OUCHAD","Saad ZAGHLOUL"
+  ];
+
+  async function seedIfEmpty(){
+    const snap = await getDocs(collection(dbFs, CARS_COL));
+    if (snap.empty){
+      const batch = writeBatch(dbFs);
+      SEED_CARS.forEach(function(c){
+        var data = Object.assign({}, c);
+        delete data.id;
+        batch.set(doc(dbFs, CARS_COL, c.id), data);
+      });
+      batch.set(doc(dbFs, "roster", "list"), { names: SEED_ROSTER });
+      await batch.commit();
+    }
+  }
+
+  var rides = [];
+  var rosterNames = [];
+
+  var nameInput = document.getElementById("nameInput");
+  var savedTag = document.getElementById("savedTag");
+  var dbBanner = document.getElementById("dbBanner");
+  var ridesGrid = document.getElementById("ridesGrid");
+  var ridesCount = document.getElementById("ridesCount");
+  var rosterPool = document.getElementById("rosterPool");
+  var rosterCount = document.getElementById("rosterCount");
+  var rosterNewName = document.getElementById("rosterNewName");
+  var rosterAddBtn = document.getElementById("rosterAddBtn");
+  var modalOverlay = document.getElementById("modalOverlay");
+  var modalBody = document.getElementById("modalBody");
+
+  function esc(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+      return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c];
+    });
+  }
+  function myName(){ return (nameInput.value || "").trim(); }
+  function sameName(a, b){ return a && b && String(a).trim().toLowerCase() === String(b).trim().toLowerCase(); }
+
+  var LS_KEY = "covoit_nom";
+  function loadName(){
+    try { var saved = localStorage.getItem(LS_KEY); if (saved) { nameInput.value = saved; savedTag.classList.add("show"); } } catch (e) {}
+  }
+  function saveName(v){ try { localStorage.setItem(LS_KEY, v); savedTag.classList.add("show"); } catch (e) {} }
+  nameInput.addEventListener("change", function(){ var v = myName(); if (v) saveName(v); render(); });
+
+  function fmtTimeStr(t){ if (!t) return null; return String(t).replace(":", "h"); }
+  function initials(name){
+    var parts = String(name || "?").trim().split(/\s+/);
+    var s = parts[0] ? parts[0][0] : "?";
+    if (parts.length > 1) s += parts[1][0];
+    return s.toUpperCase();
+  }
+
+  function closeModal(){ modalOverlay.hidden = true; modalBody.innerHTML = ""; }
+  modalOverlay.addEventListener("click", function(e){ if (e.target === modalOverlay) closeModal(); });
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape" && !modalOverlay.hidden) closeModal(); });
+
+  function openConfirmModal(text, onConfirm){
+    modalBody.innerHTML =
+      '<h3>Confirmer</h3><p class="desc">' + esc(text) + '</p>' +
+      '<div class="modal-actions"><button class="btn btn-ghost" id="modalCancel">Annuler</button>' +
+      '<button class="btn" id="modalConfirm" style="background:var(--danger);color:#fff;">Supprimer</button></div>';
+    modalOverlay.hidden = false;
+    document.getElementById("modalConfirm").addEventListener("click", function(){ closeModal(); onConfirm(); });
+    document.getElementById("modalCancel").addEventListener("click", closeModal);
+  }
+
+  function openEditModal(carDoc){
+    var d = carDoc;
+    modalBody.innerHTML =
+      '<h3>Modifier votre voiture</h3>' +
+      '<p class="desc">Ces informations sont visibles par tous vos collègues. Les dates (2 et 3 octobre) sont fixes.</p>' +
+      '<div class="field"><label for="mVehicule">Véhicule</label><input id="mVehicule" type="text" maxlength="60" value="' + esc(d.vehicule || "") + '"></div>' +
+      '<div class="field"><label for="mPlaces">Places passagers disponibles</label><input id="mPlaces" type="number" min="0" max="8" step="1" value="' + (typeof d.placesTotal === "number" ? d.placesTotal : "") + '"></div>' +
+      '<div class="field-row">' +
+        '<div class="field"><label for="mDepart">Heure de départ (2/10)</label><input id="mDepart" type="time" value="' + esc(d.heureDepart || DEFAULT_DEPART_TIME) + '"></div>' +
+        '<div class="field"><label for="mRetour">Heure de retour (3/10)</label><input id="mRetour" type="time" value="' + esc(d.heureRetour || "") + '"></div>' +
+      '</div>' +
+      '<div class="field"><label for="mNote">Note (optionnel)</label><input id="mNote" type="text" maxlength="80" value="' + esc(d.note || "") + '"></div>' +
+      '<div class="modal-msg" id="mMsg"></div>' +
+      '<div class="modal-actions"><button class="btn btn-ghost" id="modalCancel">Annuler</button><button class="btn btn-primary" id="modalSave">Enregistrer</button></div>';
+    modalOverlay.hidden = false;
+    document.getElementById("modalCancel").addEventListener("click", closeModal);
+    document.getElementById("modalSave").addEventListener("click", function(){
+      var placesRaw = document.getElementById("mPlaces").value;
+      var places = placesRaw === "" ? null : parseInt(placesRaw, 10);
+      var currentPassagers = Array.isArray(d.passagers) ? d.passagers.length : 0;
+      if (places !== null && (isNaN(places) || places < currentPassagers)){
+        document.getElementById("mMsg").textContent = "Le nombre de places ne peut pas être inférieur au nombre de passagers déjà inscrits (" + currentPassagers + ").";
+        return;
+      }
+      var payload = {
+        vehicule: document.getElementById("mVehicule").value.trim(),
+        placesTotal: places,
+        heureDepart: document.getElementById("mDepart").value || DEFAULT_DEPART_TIME,
+        heureRetour: document.getElementById("mRetour").value || "",
+        note: document.getElementById("mNote").value.trim()
+      };
+      updateDoc(doc(dbFs, CARS_COL, d.id), payload).then(closeModal).catch(function(){
+        document.getElementById("mMsg").textContent = "La mise à jour a échoué, réessayez.";
+      });
+    });
+  }
+
+  function openAddVehicleModal(){
+    var name = myName();
+    modalBody.innerHTML =
+      '<h3>Ajouter un véhicule</h3><p class="desc">Vous avez une place à proposer en plus des voitures déjà listées ?</p>' +
+      '<div class="field"><label for="aConducteur">Votre nom</label><input id="aConducteur" type="text" maxlength="40" value="' + esc(name) + '"></div>' +
+      '<div class="field"><label for="aVehicule">Véhicule</label><input id="aVehicule" type="text" maxlength="60" placeholder="Ex. Renault Scénic bleue"></div>' +
+      '<div class="field"><label for="aPlaces">Places passagers disponibles</label><input id="aPlaces" type="number" min="0" max="8" step="1" placeholder="Ex. 3"></div>' +
+      '<div class="field-row">' +
+        '<div class="field"><label for="aDepart">Heure de départ (2/10)</label><input id="aDepart" type="time" value="' + DEFAULT_DEPART_TIME + '"></div>' +
+        '<div class="field"><label for="aRetour">Heure de retour (3/10)</label><input id="aRetour" type="time"></div>' +
+      '</div>' +
+      '<div class="modal-msg" id="aMsg"></div>' +
+      '<div class="modal-actions"><button class="btn btn-ghost" id="modalCancel">Annuler</button><button class="btn btn-primary" id="modalAdd">Publier</button></div>';
+    modalOverlay.hidden = false;
+    document.getElementById("modalCancel").addEventListener("click", closeModal);
+    document.getElementById("modalAdd").addEventListener("click", function(){
+      var conducteur = document.getElementById("aConducteur").value.trim();
+      var vehicule = document.getElementById("aVehicule").value.trim();
+      var placesRaw = document.getElementById("aPlaces").value;
+      var places = placesRaw === "" ? null : parseInt(placesRaw, 10);
+      var heureDepart = document.getElementById("aDepart").value || DEFAULT_DEPART_TIME;
+      var heureRetour = document.getElementById("aRetour").value || "";
+      if (!conducteur){ document.getElementById("aMsg").textContent = "Merci d'indiquer votre nom."; return; }
+      saveName(conducteur);
+      nameInput.value = conducteur;
+      var newId = "v" + Date.now();
+      setDoc(doc(dbFs, CARS_COL, newId), {
+        conducteur: conducteur, vehicule: vehicule, placesTotal: places,
+        heureDepart: heureDepart, heureRetour: heureRetour, note: "",
+        passagers: [], isMoto: false, createdAt: Date.now()
+      }).then(closeModal).catch(function(){
+        document.getElementById("aMsg").textContent = "La publication a échoué, réessayez.";
+      });
+    });
+  }
+
+  function openChooseCarModal(name){
+    var options = rides.filter(function(d){ return !d.isMoto; }).map(function(d){
+      var passagers = Array.isArray(d.passagers) ? d.passagers : [];
+      var total = typeof d.placesTotal === "number" ? d.placesTotal : null;
+      var remaining = total === null ? null : Math.max(0, total - passagers.length);
+      var ok = total !== null && remaining > 0;
+      var label = total === null ? "places à confirmer" : (remaining > 0 ? remaining + " place" + (remaining > 1 ? "s" : "") + " libre" + (remaining > 1 ? "s" : "") : "complet");
+      return '<button type="button" class="car-choice" data-car="' + d.id + '" ' + (ok ? "" : "disabled") + '>' +
+        '<span>' + esc(d.conducteur) + (d.vehicule ? " · " + esc(d.vehicule) : "") + '</span>' +
+        '<span class="cc-seats mono">' + label + '</span></button>';
+    }).join("");
+    modalBody.innerHTML =
+      '<h3>' + esc(name) + '</h3><p class="desc">Choisissez une voiture.</p>' +
+      '<div class="car-choice-list">' + (options || '<p class="desc">Aucune voiture disponible pour le moment.</p>') + '</div>' +
+      '<div class="modal-actions"><button class="btn btn-ghost" id="modalCancel">Fermer</button></div>';
+    modalOverlay.hidden = false;
+    document.getElementById("modalCancel").addEventListener("click", closeModal);
+    Array.prototype.forEach.call(modalBody.querySelectorAll(".car-choice"), function(btn){
+      btn.addEventListener("click", function(){
+        var carId = btn.getAttribute("data-car");
+        if (canJoin(carId, name)){ addPassenger(carId, name); closeModal(); }
+      });
+    });
+  }
+
+  function findDoc(id){ for (var i = 0; i < rides.length; i++){ if (rides[i].id === id) return rides[i]; } return null; }
+
+  function canJoin(carId, name){
+    var d = findDoc(carId);
+    if (!d) return false;
+    if (d.isMoto) return false;
+    if (typeof d.placesTotal !== "number") return false;
+    var passagers = Array.isArray(d.passagers) ? d.passagers : [];
+    if (passagers.some(function(p){ return sameName(p, name); })) return false;
+    return passagers.length < d.placesTotal;
+  }
+
+  function addPassenger(carId, name){
+    var d = findDoc(carId);
+    if (!d) return;
+    var passagers = Array.isArray(d.passagers) ? d.passagers.slice() : [];
+    if (passagers.some(function(p){ return sameName(p, name); })) return;
+    passagers.push(name);
+    updateDoc(doc(dbFs, CARS_COL, carId), { passagers: passagers }).catch(function(){});
+  }
+  function removePassenger(carId, name){
+    var d = findDoc(carId);
+    if (!d) return;
+    var passagers = (Array.isArray(d.passagers) ? d.passagers.slice() : []).filter(function(p){ return !sameName(p, name); });
+    updateDoc(doc(dbFs, CARS_COL, carId), { passagers: passagers }).catch(function(){});
+  }
+  function deleteRide(id){
+    updateDoc(doc(dbFs, CARS_COL, id), { deleted: true }).catch(function(){});
+    setDoc(doc(dbFs, CARS_COL, id), { placesTotal: 0, isMoto: true, note: "Supprimée" }, { merge:true }).catch(function(){});
+  }
+  function addRosterName(name){
+    if (rosterNames.some(function(n){ return sameName(n, name); })) return;
+    setDoc(doc(dbFs, "roster", "list"), { names: rosterNames.concat([name]) }).catch(function(){});
+  }
+
+  rosterAddBtn.addEventListener("click", function(){
+    var v = (rosterNewName.value || "").trim();
+    if (!v) return;
+    addRosterName(v);
+    rosterNewName.value = "";
+  });
+  rosterNewName.addEventListener("keydown", function(e){ if (e.key === "Enter") rosterAddBtn.click(); });
+
+  // ---- Drag & drop (pointer events) ----
+  var dragState = null;
+  function startDrag(pointerId, name, clientX, clientY){
+    var ghost = document.createElement("div");
+    ghost.className = "drag-ghost"; ghost.textContent = name;
+    document.body.appendChild(ghost);
+    dragState = { pointerId: pointerId, name: name, ghost: ghost, startX: clientX, startY: clientY, moved: false, overZone: null };
+    positionGhost(clientX, clientY);
+  }
+  function positionGhost(x, y){ if (!dragState) return; dragState.ghost.style.left = x + "px"; dragState.ghost.style.top = y + "px"; }
+  function updateDropTarget(x, y){
+    if (!dragState) return;
+    dragState.ghost.style.display = "none";
+    var el = document.elementFromPoint(x, y);
+    dragState.ghost.style.display = "";
+    var zone = el && el.closest ? el.closest(".drop-zone") : null;
+    if (dragState.overZone && dragState.overZone !== zone){ dragState.overZone.classList.remove("drop-ok", "drop-no"); }
+    if (zone){
+      var carId = zone.getAttribute("data-car-id");
+      var ok = canJoin(carId, dragState.name);
+      zone.classList.toggle("drop-ok", ok);
+      zone.classList.toggle("drop-no", !ok);
+    }
+    dragState.overZone = zone;
+  }
+  function endDrag(){
+    if (!dragState) return;
+    var zone = dragState.overZone;
+    if (zone) zone.classList.remove("drop-ok", "drop-no");
+    if (dragState.moved && zone){
+      var carId = zone.getAttribute("data-car-id");
+      if (canJoin(carId, dragState.name)) addPassenger(carId, dragState.name);
+    } else if (!dragState.moved){
+      openChooseCarModal(dragState.name);
+    }
+    dragState.ghost.remove();
+    dragState = null;
+  }
+  document.addEventListener("pointermove", function(e){
+    if (!dragState || e.pointerId !== dragState.pointerId) return;
+    e.preventDefault();
+    var dx = e.clientX - dragState.startX, dy = e.clientY - dragState.startY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) dragState.moved = true;
+    positionGhost(e.clientX, e.clientY);
+    updateDropTarget(e.clientX, e.clientY);
+  }, { passive: false });
+  document.addEventListener("pointerup", function(e){ if (!dragState || e.pointerId !== dragState.pointerId) return; endDrag(); });
+  document.addEventListener("pointercancel", function(e){
+    if (!dragState || e.pointerId !== dragState.pointerId) return;
+    if (dragState.overZone) dragState.overZone.classList.remove("drop-ok", "drop-no");
+    dragState.ghost.remove(); dragState = null;
+  });
+  rosterPool.addEventListener("pointerdown", function(e){
+    var chip = e.target.closest(".consultant-chip");
+    if (!chip) return;
+    e.preventDefault();
+    startDrag(e.pointerId, chip.getAttribute("data-name"), e.clientX, e.clientY);
+  });
+
+  // ---- Rendering ----
+  function renderRoster(){
+    var assigned = {};
+    rides.forEach(function(d){ (Array.isArray(d.passagers) ? d.passagers : []).forEach(function(p){ assigned[p.trim().toLowerCase()] = true; }); });
+    var unassigned = rosterNames.filter(function(n){ return !assigned[n.trim().toLowerCase()]; });
+    var name = myName();
+    rosterCount.textContent = unassigned.length + " consultant" + (unassigned.length !== 1 ? "s" : "") + " à placer";
+    rosterPool.classList.toggle("is-empty", unassigned.length === 0);
+    rosterPool.innerHTML = unassigned.map(function(n){
+      var isMe = sameName(n, name);
+      return '<span class="consultant-chip' + (isMe ? " me" : "") + '" data-name="' + esc(n) + '"><span class="grip">&#8942;&#8942;</span>' + esc(n) + '</span>';
+    }).join("");
+  }
+  function renderSeatDots(passagers, total){
+    var out = "";
+    for (var i = 0; i < total; i++){
+      var taken = i < passagers.length;
+      out += '<span class="seat-dot' + (taken ? " taken" : "") + '" title="' + (taken ? esc(passagers[i]) : "libre") + '"></span>';
+    }
+    return out;
+  }
+  function renderCard(d){
+    var passagers = Array.isArray(d.passagers) ? d.passagers : [];
+    var name = myName();
+    var iAmDriver = sameName(name, d.conducteur);
+
+    if (d.isMoto && !d.note?.includes("Supprimée")){
+      return (
+        '<article class="card moto-card">' +
+          '<div class="card-head"><div class="avatar">' + esc(initials(d.conducteur)) + '</div>' +
+          '<div class="who"><div class="driver">' + esc(d.conducteur || "Conducteur") + '</div>' +
+          '<div class="vehicle">' + esc(d.vehicule || "Moto") + '</div></div></div>' +
+          '<p class="moto-note">&#127946; ' + esc(d.note || "Trajet en moto, pas de place passager.") + '</p>' +
+        '</article>'
+      );
+    }
+    if (d.note === "Supprimée") return "";
+
+    var total = typeof d.placesTotal === "number" ? d.placesTotal : null;
+    var remaining = total === null ? null : Math.max(0, total - passagers.length);
+    var full = total !== null && remaining <= 0;
+
+    var chips = passagers.map(function(p){
+      var isMe = sameName(p, name);
+      return '<span class="chip' + (isMe ? " me" : "") + '">' + esc(p) + '<button data-remove="' + d.id + '" data-name="' + esc(p) + '" aria-label="Retirer">×</button></span>';
+    }).join("");
+
+    var headActions =
+      '<div class="head-actions"><button class="icon-btn accent" data-edit="' + d.id + '" title="Modifier">&#9998;</button>' +
+      (iAmDriver ? '<button class="icon-btn danger" data-delete="' + d.id + '" title="Supprimer">&#10005;</button>' : '') + '</div>';
+
+    var departTime = fmtTimeStr(d.heureDepart) || fmtTimeStr(DEFAULT_DEPART_TIME);
+    var isEarly = d.heureDepart && d.heureDepart < DEFAULT_DEPART_TIME;
+    var retourTime = fmtTimeStr(d.heureRetour);
+
+    var seatsLine;
+    if (total === null){
+      seatsLine = '<span class="seats-avail pending mono">Places à confirmer' + (iAmDriver ? " — cliquez sur le crayon" : "") + '</span>';
+    } else {
+      seatsLine = '<span class="seats-avail ' + (full ? "full" : "open") + ' mono">' +
+        (full ? "Complet" : remaining + " place" + (remaining > 1 ? "s" : "") + " disponible" + (remaining > 1 ? "s" : "")) + '</span>' +
+        '<div class="seat-dots">' + renderSeatDots(passagers, total) + '</div>';
+    }
+    var dropHint = (total !== null && !full) ? '<p class="drop-hint">Glissez un consultant ici pour l&rsquo;ajouter.</p>' : '';
+
+    return (
+      '<article class="card drop-zone" data-car-id="' + d.id + '">' +
+        '<div class="card-head"><div class="avatar">' + esc(initials(d.conducteur)) + '</div>' +
+        '<div class="who"><div class="driver">' + esc(d.conducteur || "Conducteur") + '</div>' +
+        '<div class="vehicle">' + esc(d.vehicule || "Véhicule non précisé") + '</div></div>' + headActions + '</div>' +
+        '<div class="schedule">' +
+          '<div class="item"><span class="k">Départ</span><span class="v">' + esc(departTime) + (isEarly ? '<span class="badge-early">avancé</span>' : '') + '</span></div>' +
+          '<div class="item"><span class="k">Retour</span><span class="v' + (retourTime ? '' : ' pending') + '">' + (retourTime ? esc(retourTime) : "à préciser") + '</span></div>' +
+        '</div>' +
+        (d.note ? '<p class="note">&#128172; ' + esc(d.note) + '</p>' : '') +
+        '<div class="seats-block"><div class="seats-line">' + seatsLine + '</div>' +
+        (chips ? '<div class="passengers">' + chips + '</div>' : '') + dropHint + '</div>' +
+      '</article>'
+    );
+  }
+  function render(){
+    renderRoster();
+    var totalSeats = 0;
+    rides.forEach(function(d){
+      if (d.isMoto || d.note === "Supprimée") return;
+      if (typeof d.placesTotal !== "number") return;
+      var passagers = Array.isArray(d.passagers) ? d.passagers : [];
+      totalSeats += Math.max(0, d.placesTotal - passagers.length);
+    });
+    var carCount = rides.filter(function(d){ return !d.isMoto && d.note !== "Supprimée"; }).length;
+    ridesCount.textContent = carCount + " voiture" + (carCount > 1 ? "s" : "") + " · " + totalSeats + " place" + (totalSeats > 1 ? "s" : "") + " disponible" + (totalSeats > 1 ? "s" : "");
+    var html = rides.map(renderCard).join("");
+    html += '<button class="add-card" id="addCardBtn" type="button"><span class="plus">+</span><span class="label">Ajouter un véhicule</span></button>';
+    ridesGrid.innerHTML = html;
+    var addBtn = document.getElementById("addCardBtn");
+    if (addBtn) addBtn.addEventListener("click", openAddVehicleModal);
+  }
+  ridesGrid.addEventListener("click", function(e){
+    var removeBtn = e.target.closest("[data-remove]");
+    var delId = e.target.getAttribute("data-delete");
+    var editId = e.target.getAttribute("data-edit");
+    if (removeBtn){ removePassenger(removeBtn.getAttribute("data-remove"), removeBtn.getAttribute("data-name")); return; }
+    if (editId){ var d = findDoc(editId); if (d) openEditModal(d); }
+    if (delId){ openConfirmModal("Supprimer cette voiture ? Cette action est définitive.", function(){ deleteRide(delId); }); }
+  });
+
+  function boot(){
+    loadName();
+    render();
+    seedIfEmpty().catch(function(err){
+      dbBanner.hidden = false; dbBanner.className = "banner error";
+      dbBanner.textContent = "Erreur de connexion à la base : " + err.message + " — vérifiez la configuration Firebase en haut du fichier.";
+    });
+    onSnapshot(collection(dbFs, CARS_COL), function(snap){
+      rides = snap.docs.map(function(d){ return Object.assign({ id: d.id }, d.data()); })
+        .sort(function(a,b){ return (a.createdAt||0) - (b.createdAt||0); });
+      render();
+    }, function(err){
+      dbBanner.hidden = false; dbBanner.className = "banner error";
+      dbBanner.textContent = "Impossible de lire la base : " + err.message;
+    });
+    onSnapshot(doc(dbFs, "roster", "list"), function(snap){
+      var data = snap.exists() ? snap.data() : null;
+      rosterNames = (data && Array.isArray(data.names)) ? data.names : [];
+      render();
+    });
+  }
+  boot();
+</script>
+</body>
+</html>
