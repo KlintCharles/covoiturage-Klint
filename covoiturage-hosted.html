@@ -265,7 +265,7 @@
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
-    getFirestore, collection, doc, getDocs, setDoc, updateDoc, onSnapshot, writeBatch
+    getFirestore, collection, doc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const app = initializeApp(firebaseConfig);
@@ -485,8 +485,7 @@
     updateDoc(doc(dbFs, CARS_COL, carId), { passagers: passagers }).catch(function(){});
   }
   function deleteRide(id){
-    updateDoc(doc(dbFs, CARS_COL, id), { deleted: true }).catch(function(){});
-    setDoc(doc(dbFs, CARS_COL, id), { placesTotal: 0, isMoto: true, note: "Supprimée" }, { merge:true }).catch(function(){});
+    deleteDoc(doc(dbFs, CARS_COL, id)).catch(function(){});
   }
   function addRosterName(name){
     if (rosterNames.some(function(n){ return sameName(n, name); })) return;
@@ -598,17 +597,18 @@
     var name = myName();
     var iAmDriver = sameName(name, d.conducteur);
 
-    if (d.isMoto && !d.note?.includes("Supprimée")){
+    if (d.isMoto){
       return (
         '<article class="card moto-card">' +
           '<div class="card-head"><div class="avatar">' + esc(initials(d.conducteur)) + '</div>' +
           '<div class="who"><div class="driver">' + esc(d.conducteur || "Conducteur") + '</div>' +
-          '<div class="vehicle">' + esc(d.vehicule || "Moto") + '</div></div></div>' +
+          '<div class="vehicle">' + esc(d.vehicule || "Moto") + '</div></div>' +
+          '<div class="head-actions"><button class="icon-btn danger" data-delete="' + d.id + '" title="Supprimer">&#10005;</button></div>' +
+          '</div>' +
           '<p class="moto-note">&#127946; ' + esc(d.note || "Trajet en moto, pas de place passager.") + '</p>' +
         '</article>'
       );
     }
-    if (d.note === "Supprimée") return "";
 
     var total = typeof d.placesTotal === "number" ? d.placesTotal : null;
     var remaining = total === null ? null : Math.max(0, total - passagers.length);
@@ -621,7 +621,7 @@
 
     var headActions =
       '<div class="head-actions"><button class="icon-btn accent" data-edit="' + d.id + '" title="Modifier">&#9998;</button>' +
-      (iAmDriver ? '<button class="icon-btn danger" data-delete="' + d.id + '" title="Supprimer">&#10005;</button>' : '') + '</div>';
+      '<button class="icon-btn danger" data-delete="' + d.id + '" title="Supprimer">&#10005;</button></div>';
 
     var departTime = fmtTimeStr(d.heureDepart) || fmtTimeStr(DEFAULT_DEPART_TIME);
     var isEarly = d.heureDepart && d.heureDepart < DEFAULT_DEPART_TIME;
@@ -657,12 +657,12 @@
     renderRoster();
     var totalSeats = 0;
     rides.forEach(function(d){
-      if (d.isMoto || d.note === "Supprimée") return;
+      if (d.isMoto) return;
       if (typeof d.placesTotal !== "number") return;
       var passagers = Array.isArray(d.passagers) ? d.passagers : [];
       totalSeats += Math.max(0, d.placesTotal - passagers.length);
     });
-    var carCount = rides.filter(function(d){ return !d.isMoto && d.note !== "Supprimée"; }).length;
+    var carCount = rides.filter(function(d){ return !d.isMoto; }).length;
     ridesCount.textContent = carCount + " voiture" + (carCount > 1 ? "s" : "") + " · " + totalSeats + " place" + (totalSeats > 1 ? "s" : "") + " disponible" + (totalSeats > 1 ? "s" : "");
     var html = rides.map(renderCard).join("");
     html += '<button class="add-card" id="addCardBtn" type="button"><span class="plus">+</span><span class="label">Ajouter un véhicule</span></button>';
