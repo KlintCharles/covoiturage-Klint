@@ -89,6 +89,11 @@
   .consultant-chip.me{ border-color:var(--teal); color:var(--teal); }
   .consultant-chip:active{ cursor:grabbing; }
   .consultant-chip .grip{ opacity:0.4; font-size:11px; }
+  .consultant-chip .remove-consultant{
+    background:none; border:none; cursor:pointer; color:inherit; opacity:0.55;
+    font-size:13px; line-height:1; padding:0; margin-left:2px; touch-action:auto;
+  }
+  .consultant-chip .remove-consultant:hover{ opacity:1; color:var(--danger); }
   .roster-add{ display:flex; gap:8px; margin-top:10px; }
   .roster-add input{ flex:1; background:var(--surface); border:1.5px solid var(--border); border-radius:10px; padding:9px 12px; font-size:13.5px; color:var(--ink); }
   .roster-add input:focus{ outline:2px solid var(--accent); outline-offset:1px; }
@@ -487,6 +492,10 @@
     if (rosterNames.some(function(n){ return sameName(n, name); })) return;
     setDoc(doc(dbFs, "roster", "list"), { names: rosterNames.concat([name]) }).catch(function(){});
   }
+  function removeRosterName(name){
+    var updated = rosterNames.filter(function(n){ return !sameName(n, name); });
+    setDoc(doc(dbFs, "roster", "list"), { names: updated }).catch(function(){});
+  }
 
   rosterAddBtn.addEventListener("click", function(){
     var v = (rosterNewName.value || "").trim();
@@ -549,10 +558,17 @@
     dragState.ghost.remove(); dragState = null;
   });
   rosterPool.addEventListener("pointerdown", function(e){
+    if (e.target.closest(".remove-consultant")) return;
     var chip = e.target.closest(".consultant-chip");
     if (!chip) return;
     e.preventDefault();
     startDrag(e.pointerId, chip.getAttribute("data-name"), e.clientX, e.clientY);
+  });
+  rosterPool.addEventListener("click", function(e){
+    var btn = e.target.closest(".remove-consultant");
+    if (!btn) return;
+    var name = btn.getAttribute("data-remove-consultant");
+    openConfirmModal("Retirer " + name + " de la liste des consultants à placer ?", function(){ removeRosterName(name); });
   });
 
   // ---- Rendering ----
@@ -565,7 +581,8 @@
     rosterPool.classList.toggle("is-empty", unassigned.length === 0);
     rosterPool.innerHTML = unassigned.map(function(n){
       var isMe = sameName(n, name);
-      return '<span class="consultant-chip' + (isMe ? " me" : "") + '" data-name="' + esc(n) + '"><span class="grip">&#8942;&#8942;</span>' + esc(n) + '</span>';
+      return '<span class="consultant-chip' + (isMe ? " me" : "") + '" data-name="' + esc(n) + '"><span class="grip">&#8942;&#8942;</span>' + esc(n) +
+        '<button type="button" class="remove-consultant" data-remove-consultant="' + esc(n) + '" aria-label="Retirer de la liste">×</button></span>';
     }).join("");
   }
   function renderSeatDots(passagers, total){
