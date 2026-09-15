@@ -271,12 +271,12 @@
   const DEFAULT_DEPART_TIME = "17:00";
 
   const SEED_CARS = [
-    { id:"charles", conducteur:"Charles BLIVET", vehicule:"VW Touran", placesTotal:6, heureDepart:"16:00", heureRetour:"15:00", note:"Départ avancé pour faire les courses", passagers:["Thibault BAUDARD","Guillaume BUISSON"], isMoto:false, createdAt:1 },
-    { id:"julien", conducteur:"Julien SHEN", vehicule:"", placesTotal:4, heureDepart:"17:00", heureRetour:"", note:"", passagers:[], isMoto:false, createdAt:2 },
-    { id:"niels", conducteur:"Niels VANECLOO", vehicule:"Citroën C3", placesTotal:4, heureDepart:"17:00", heureRetour:"", note:"", passagers:[], isMoto:false, createdAt:3 },
-    { id:"pierre", conducteur:"Pierre MESNIL", vehicule:"", placesTotal:4, heureDepart:"17:00", heureRetour:"", note:"", passagers:[], isMoto:false, createdAt:4 },
-    { id:"sandrine", conducteur:"Sandrine BEAUDELIN", vehicule:"Austin MINI", placesTotal:4, heureDepart:"17:00", heureRetour:"", note:"", passagers:["Dany PERENCHIO","Victoria GUEZ","Robin LERDA"], isMoto:false, createdAt:5 },
-    { id:"johan", conducteur:"Johan POGGI", vehicule:"Moto", placesTotal:0, heureDepart:"17:00", heureRetour:"", note:"Départ direct depuis son domicile", passagers:[], isMoto:true, createdAt:6 }
+    { id:"charles", conducteur:"Charles BLIVET", vehicule:"VW Touran", ville:"", placesTotal:6, heureDepart:"16:00", heureRetour:"15:00", note:"Départ avancé pour faire les courses", passagers:["Thibault BAUDARD","Guillaume BUISSON"], isMoto:false, createdAt:1 },
+    { id:"julien", conducteur:"Julien SHEN", vehicule:"", ville:"", placesTotal:4, heureDepart:"17:00", heureRetour:"", note:"", passagers:[], isMoto:false, createdAt:2 },
+    { id:"niels", conducteur:"Niels VANECLOO", vehicule:"Citroën C3", ville:"", placesTotal:4, heureDepart:"17:00", heureRetour:"", note:"", passagers:[], isMoto:false, createdAt:3 },
+    { id:"pierre", conducteur:"Pierre MESNIL", vehicule:"", ville:"", placesTotal:4, heureDepart:"17:00", heureRetour:"", note:"", passagers:[], isMoto:false, createdAt:4 },
+    { id:"sandrine", conducteur:"Sandrine BEAUDELIN", vehicule:"Austin MINI", ville:"", placesTotal:4, heureDepart:"17:00", heureRetour:"", note:"", passagers:["Dany PERENCHIO","Victoria GUEZ","Robin LERDA"], isMoto:false, createdAt:5 },
+    { id:"johan", conducteur:"Johan POGGI", vehicule:"Moto", ville:"", placesTotal:0, heureDepart:"17:00", heureRetour:"", note:"Départ direct depuis son domicile", passagers:[], isMoto:true, createdAt:6 }
   ];
   const SEED_ROSTER = [
     "Thibault BAUDARD","Guillaume BUISSON","Dany PERENCHIO","Victoria GUEZ","Robin LERDA",
@@ -357,6 +357,7 @@
       '<h3>Modifier votre voiture</h3>' +
       '<p class="desc">Ces informations sont visibles par tous vos collègues. Les dates (2 et 3 octobre) sont fixes.</p>' +
       '<div class="field"><label for="mVehicule">Véhicule</label><input id="mVehicule" type="text" maxlength="60" value="' + esc(d.vehicule || "") + '"></div>' +
+      '<div class="field"><label for="mVille">Ville où vous habitez</label><input id="mVille" type="text" maxlength="60" placeholder="Ex. Levallois-Perret" value="' + esc(d.ville || "") + '"></div>' +
       '<div class="field"><label for="mPlaces">Places passagers disponibles</label><input id="mPlaces" type="number" min="0" max="8" step="1" value="' + (typeof d.placesTotal === "number" ? d.placesTotal : "") + '"></div>' +
       '<div class="field-row">' +
         '<div class="field"><label for="mDepart">Heure de départ (2/10)</label><input id="mDepart" type="time" value="' + esc(d.heureDepart || DEFAULT_DEPART_TIME) + '"></div>' +
@@ -377,6 +378,7 @@
       }
       var payload = {
         vehicule: document.getElementById("mVehicule").value.trim(),
+        ville: document.getElementById("mVille").value.trim(),
         placesTotal: places,
         heureDepart: document.getElementById("mDepart").value || DEFAULT_DEPART_TIME,
         heureRetour: document.getElementById("mRetour").value || "",
@@ -394,6 +396,7 @@
       '<h3>Ajouter un véhicule</h3><p class="desc">Vous avez une place à proposer en plus des voitures déjà listées ?</p>' +
       '<div class="field"><label for="aConducteur">Votre nom</label><input id="aConducteur" type="text" maxlength="40" value="' + esc(name) + '"></div>' +
       '<div class="field"><label for="aVehicule">Véhicule</label><input id="aVehicule" type="text" maxlength="60" placeholder="Ex. Renault Scénic bleue"></div>' +
+      '<div class="field"><label for="aVille">Ville où vous habitez</label><input id="aVille" type="text" maxlength="60" placeholder="Ex. Levallois-Perret"></div>' +
       '<div class="field"><label for="aPlaces">Places passagers disponibles</label><input id="aPlaces" type="number" min="0" max="8" step="1" placeholder="Ex. 3"></div>' +
       '<div class="field-row">' +
         '<div class="field"><label for="aDepart">Heure de départ (2/10)</label><input id="aDepart" type="time" value="' + DEFAULT_DEPART_TIME + '"></div>' +
@@ -406,6 +409,7 @@
     document.getElementById("modalAdd").addEventListener("click", function(){
       var conducteur = document.getElementById("aConducteur").value.trim();
       var vehicule = document.getElementById("aVehicule").value.trim();
+      var ville = document.getElementById("aVille").value.trim();
       var placesRaw = document.getElementById("aPlaces").value;
       var places = placesRaw === "" ? null : parseInt(placesRaw, 10);
       var heureDepart = document.getElementById("aDepart").value || DEFAULT_DEPART_TIME;
@@ -415,7 +419,7 @@
       nameInput.value = conducteur;
       var newId = "v" + Date.now();
       setDoc(doc(dbFs, CARS_COL, newId), {
-        conducteur: conducteur, vehicule: vehicule, placesTotal: places,
+        conducteur: conducteur, vehicule: vehicule, ville: ville, placesTotal: places,
         heureDepart: heureDepart, heureRetour: heureRetour, note: "",
         passagers: [], isMoto: false, createdAt: Date.now()
       }).then(closeModal).catch(function(){
@@ -622,6 +626,7 @@
         '<div class="who"><div class="driver">' + esc(d.conducteur || "Conducteur") + '</div>' +
         '<div class="vehicle">' + esc(d.vehicule || "Véhicule non précisé") + '</div></div>' + headActions + '</div>' +
         '<div class="schedule">' +
+          '<div class="item"><span class="k">Habite à</span><span class="v' + (d.ville ? '' : ' pending') + '">' + (d.ville ? esc(d.ville) : "non précisée") + '</span></div>' +
           '<div class="item"><span class="k">Départ</span><span class="v">' + esc(departTime) + (isEarly ? '<span class="badge-early">avancé</span>' : '') + '</span></div>' +
           '<div class="item"><span class="k">Retour</span><span class="v' + (retourTime ? '' : ' pending') + '">' + (retourTime ? esc(retourTime) : "à préciser") + '</span></div>' +
         '</div>' +
